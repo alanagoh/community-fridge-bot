@@ -378,3 +378,8 @@ When implementing this system, prioritise in this order:
 ---
 
 *This document should be updated as open questions are resolved and decisions are made.*
+
+---
+
+**Last synced:** 22-02-2026 by Alana
+**Source of truth:** Notion (for collaboration with Asiyah)
