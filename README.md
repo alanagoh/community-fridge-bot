@@ -22,11 +22,15 @@ A two-part system:
 
 ## Tech Stack
 
-- **n8n** (self-hosted) — workflow automation
+- **Vercel** (serverless) — webhook hosting, auto-deploys from GitHub
 - **WhatsApp Business Cloud API** — user interface
-- **Claude/GPT-4o Vision** — food identification from photos
+- **Gemini 2.0 Flash** — food identification from photos (free tier: 1,500 requests/day)
 - **Supabase** — database and file storage
 - **Google Cloud TTS** — voice message support
+
+## Cost
+
+**$0/month** — fully within free tiers for single-fridge pilot scale.
 
 ## Contributing
 

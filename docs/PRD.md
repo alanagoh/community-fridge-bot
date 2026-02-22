@@ -45,21 +45,33 @@ Reduce food waste and improve food access by making community fridge stock infor
 
 | Component | Tool | Rationale |
 |---|---|---|
-| Automation / Workflow | n8n (self-hosted) | No operation limits, free, good for non-profits |
+| Backend / Webhook hosting | Vercel (free tier) | Serverless functions, no server to maintain, 100k invocations/month free, auto-deploys from GitHub |
 | WhatsApp API | Meta WhatsApp Business Cloud API | Direct, no Twilio markup, free tier covers launch |
-| AI Vision | Claude API (claude-sonnet) or GPT-4o | Best accuracy for messy real-world fridge photos, reliable structured output |
-| Translation | Same AI model (single prompt call) | Cheap, no extra integration |
+| AI Vision | Gemini 2.0 Flash | Free tier (1,500 requests/day), fast (~1s), good vision quality |
+| Translation | Same AI model (single prompt call) | Free, no extra integration |
 | Text-to-Speech | Google Cloud TTS | Best quality for Mandarin/Malay/Tamil; 1M chars/month free |
 | Database | Supabase (free tier) | Stores fridge locations, stock snapshots, user prefs, coordinator sessions |
-| Backend / Webhook hosting | Cloudflare Workers (free tier) | Handles n8n webhooks, 100k req/day free |
-| Audio file storage | Supabase Storage or Cloudflare R2 | Temporary storage for TTS audio files before WhatsApp delivery |
+| Audio file storage | Supabase Storage | Temporary storage for TTS audio files before WhatsApp delivery |
+
+### Why Vercel over n8n?
+- **No server required** — n8n needs a machine running 24/7; Vercel runs only when messages arrive
+- **Free tier is generous** — 100k function invocations/month, more than enough for pilot
+- **Auto-deploys from GitHub** — push code, it's live
+- **Trade-off**: Code-based (JavaScript) instead of visual workflow builder, but Claude Code can help maintain it
+
+### Why Gemini Flash over Claude?
+- **Free** — 1,500 requests/day free tier vs paid-per-use
+- **Faster** — ~1 second response time, stays well under Vercel's 10-second timeout
+- **Cheaper if we exceed free tier** — $0.10/1M tokens vs $1/1M tokens (10x cheaper)
+- **Trade-off**: Using Google's API instead of Anthropic's; both work fine for food identification
 
 ### Estimated Monthly Cost at Launch
+- Vercel hosting: **$0** (within free tier)
 - WhatsApp API (user-initiated, <1k conversations): **$0**
-- AI Vision (10 photos/day): **~$1–3**
+- AI Vision with Gemini Flash (10 photos/day): **$0** (within free tier)
 - Google Cloud TTS: **$0** (within free tier)
-- Hosting and database: **$0**
-- **Total: ~$1–3/month**
+- Supabase: **$0** (within free tier)
+- **Total: $0/month** (fully within free tiers)
 
 ---
 
@@ -177,11 +189,11 @@ Add text-to-speech option for users who prefer audio.
 ```
 Coordinator sends photo to WhatsApp bot number
   ↓
-n8n webhook receives image
+Vercel serverless function receives webhook
   ↓
 [If multiple fridges] Bot asks: "Which fridge is this for?" → Coordinator replies with number
   ↓
-Image sent to Claude/GPT-4o Vision API with food identification prompt
+Image sent to Gemini Flash Vision API with food identification prompt
   ↓
 AI returns structured stock list (draft)
   ↓
@@ -361,19 +373,29 @@ Phase 1 relies on coordinator word-of-mouth. Before Phase 2:
 
 When implementing this system, prioritise in this order:
 
-1. **Set up n8n locally first** and confirm webhook connectivity before writing any business logic
+1. **Set up Vercel project first** — connect GitHub repo, confirm deploys work
 2. **Test the WhatsApp Business API** with a simple echo bot before adding AI calls
 3. **Build the coordinator flow first** — it is the data source; without it nothing works
-4. **Use environment variables** for all API keys (Claude/OpenAI, Google Cloud, Supabase, WhatsApp token)
+4. **Use environment variables** for all API keys (Gemini, Google Cloud TTS, Supabase, WhatsApp token) — set these in Vercel dashboard
 5. **Log everything in early stages** — AI vision responses, coordinator messages, state transitions — to debug edge cases
 6. **Handle WhatsApp message types explicitly** — text, image, location, and audio are all different webhook payloads
 7. **Session state timeout** — coordinator sessions should expire after 30 minutes of inactivity and reset to idle to avoid stale state bugs
 
-### n8n Workflow Structure (suggested)
-- **Workflow 1:** Incoming message router — routes to coordinator flow or user flow based on sender phone number
-- **Workflow 2:** Coordinator upload flow — image → AI → draft → verification loop → save to Supabase
-- **Workflow 3:** User query flow — location/fridge selection → retrieve snapshot → translate if needed → TTS if needed → reply
-- **Workflow 4:** User onboarding — first-time user detection → language/output preference collection → save to Supabase
+### Vercel Project Structure
+```
+community-fridge-bot/
+├── api/
+│   └── webhook.js          ← Main entry point, receives all WhatsApp messages
+├── lib/
+│   ├── router.js           ← Routes to coordinator or user flow based on phone number
+│   ├── coordinator.js      ← Coordinator upload flow logic
+│   ├── user.js             ← User query flow logic
+│   ├── gemini.js           ← Gemini Flash API calls for vision
+│   ├── supabase.js         ← Database helpers
+│   └── whatsapp.js         ← WhatsApp API send helpers
+├── vercel.json             ← Config
+└── package.json
+```
 
 ---
 
@@ -381,5 +403,5 @@ When implementing this system, prioritise in this order:
 
 ---
 
-**Last synced:** 22-02-2026 by Alana
+**Last synced:** 22-02-2026 by Alana (updated to Vercel + Gemini Flash)
 **Source of truth:** Notion (for collaboration with Asiyah)
