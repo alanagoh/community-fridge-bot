@@ -184,6 +184,46 @@ Add text-to-speech option for users who prefer audio.
 
 ## 7. Key Flows
 
+### 7.0 How Coordinators vs Users Are Identified
+
+**One WhatsApp number, two different experiences.**
+
+When any message arrives, the system checks the sender's phone number against the database:
+
+```
+Incoming WhatsApp message
+        ↓
+Check: Is sender's phone in any fridge's coordinator_phones list?
+        ↓
+    ┌──────────────────────────────────────────────┐
+    │                                              │
+    ▼                                              ▼
+   YES                                            NO
+    │                                              │
+    ▼                                              ▼
+Coordinator flow                              User flow
+(upload photos,                           (query stock,
+verify AI output,                         get fridge info)
+publish stock)
+```
+
+**How it works in practice:**
+
+| Phone number | In database as | What they see |
+|--------------|----------------|---------------|
+| +65 9111 2222 | Coordinator for Toa Payoh fridge | Sends photo → AI identifies food → confirms → published |
+| +65 9333 4444 | Coordinator for Bedok + Tampines | Sends photo → asked "which fridge?" → continues flow |
+| +65 9555 6666 | Not in any coordinator list | Messages bot → receives latest stock info |
+
+**Adding new coordinators:**
+1. Coordinator provides their phone number
+2. Admin adds it to the fridge's `coordinator_phones` array in Supabase
+3. Next message from that number → recognized as coordinator
+
+No app download, no account creation — just their existing WhatsApp number.
+
+---
+
 ### 7.1 Coordinator Upload Flow
 
 ```
@@ -403,5 +443,5 @@ community-fridge-bot/
 
 ---
 
-**Last synced:** 22-02-2026 by Alana (updated to Vercel + Gemini Flash)
+**Last synced:** 22-02-2026 by Alana (added coordinator vs user routing)
 **Source of truth:** Notion (for collaboration with Asiyah)
